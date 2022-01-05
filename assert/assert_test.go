@@ -1,6 +1,7 @@
 package assert_test
 
 import (
+	"errors"
 	"math"
 	"testing"
 
@@ -98,4 +99,17 @@ func TestContainsValFail(t *testing.T) {
 	defer r.AssertFatalCalled()
 
 	assert.ContainsVal(r, map[int]string{0: "a", 1: "b"}, "c")
+}
+
+func TestNilError(t *testing.T) {
+	var err error
+	assert.NilError(t, err)
+}
+
+func TestNilErrorFail(t *testing.T) {
+	r := newRecorder(t)
+	defer r.AssertFatalCalled()
+
+	var err error = errors.New("")
+	assert.NilError(r, err)
 }
