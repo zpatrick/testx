@@ -73,6 +73,13 @@ func NilError(t testing.TB, err error) {
 // ErrorsIs calls t.Fatal if errors.Is(err, target) fails.
 func ErrorIs(t testing.TB, err, target error) {
 	if !errors.Is(err, target) {
-		t.Fatalf("error %v is not %v", err, target)
+		t.Fatalf("error.Is check failed for %v (target: %v)", err, target)
+	}
+}
+
+// ErrorsAs calls t.Fatal if errors.As(err, target) fails.
+func ErrorAs(t testing.TB, err error, target any) {
+	if !errors.As(err, target) {
+		t.Fatalf("error.As check failed for %v (target: %v)", err, target)
 	}
 }

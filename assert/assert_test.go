@@ -140,3 +140,16 @@ func TestErrorIsFail(t *testing.T) {
 	var err error = errors.New("")
 	assert.ErrorIs(r, err, os.ErrClosed)
 }
+
+func TestErrorAs(t *testing.T) {
+	var err error = os.ErrClosed
+	assert.ErrorAs(t, err, &os.ErrClosed)
+}
+
+func TestErrorAsFail(t *testing.T) {
+	r := newRecorder(t)
+	defer r.AssertFatalCalled()
+
+	var err error
+	assert.ErrorAs(r, err, &os.ErrClosed)
+}
