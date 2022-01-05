@@ -102,6 +102,19 @@ func TestContainsValFail(t *testing.T) {
 	assert.ContainsVal(r, map[int]string{0: "a", 1: "b"}, "c")
 }
 
+func TestError(t *testing.T) {
+	var err error = errors.New("")
+	assert.Error(t, err)
+}
+
+func TestErrorFail(t *testing.T) {
+	r := newRecorder(t)
+	defer r.AssertFatalCalled()
+
+	var err error
+	assert.Error(r, err)
+}
+
 func TestNilError(t *testing.T) {
 	var err error
 	assert.NilError(t, err)
@@ -120,7 +133,7 @@ func TestErrorIs(t *testing.T) {
 	assert.ErrorIs(t, err, os.ErrClosed)
 }
 
-func TestErrorFail(t *testing.T) {
+func TestErrorIsFail(t *testing.T) {
 	r := newRecorder(t)
 	defer r.AssertFatalCalled()
 

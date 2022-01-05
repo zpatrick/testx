@@ -54,6 +54,13 @@ func ContainsVal[A, T comparable](t testing.TB, m map[A]T, val T) {
 	t.Fatalf("val %v not present in %v", val, m)
 }
 
+// Error calls t.Fatal if err is nil.
+func Error(t testing.TB, err error) {
+	if err == nil {
+		t.Fatalf("error is nil")
+	}
+}
+
 // NilError calls t.Fatal if err is not nil.
 func NilError(t testing.TB, err error) {
 	if err == nil {
