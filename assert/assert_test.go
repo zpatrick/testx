@@ -1,6 +1,7 @@
 package assert_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/zpatrick/testx/assert"
@@ -39,6 +40,23 @@ func TestEqualFail(t *testing.T) {
 	defer r.AssertFatalCalled()
 
 	assert.Equal(r, 1, 2)
+}
+
+type roundedFloat float64
+
+func (r roundedFloat) Equal(o roundedFloat) bool {
+	return math.Round(float64(r)) == math.Round(float64(o))
+}
+
+func TestEqualC(t *testing.T) {
+	assert.EqualC[roundedFloat](t, roundedFloat(1.1), roundedFloat(1.2))
+}
+
+func TestEqualCFail(t *testing.T) {
+	r := newRecorder(t)
+	defer r.AssertFatalCalled()
+
+	assert.EqualC[roundedFloat](r, roundedFloat(1.1), roundedFloat(2.1))
 }
 
 func TestContains(t *testing.T) {
