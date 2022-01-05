@@ -3,6 +3,7 @@ package assert_test
 import (
 	"errors"
 	"math"
+	"os"
 	"testing"
 
 	"github.com/zpatrick/testx/assert"
@@ -112,4 +113,17 @@ func TestNilErrorFail(t *testing.T) {
 
 	var err error = errors.New("")
 	assert.NilError(r, err)
+}
+
+func TestErrorIs(t *testing.T) {
+	var err error = os.ErrClosed
+	assert.ErrorIs(t, err, os.ErrClosed)
+}
+
+func TestErrorFail(t *testing.T) {
+	r := newRecorder(t)
+	defer r.AssertFatalCalled()
+
+	var err error = errors.New("")
+	assert.ErrorIs(r, err, os.ErrClosed)
 }

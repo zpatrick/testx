@@ -1,6 +1,9 @@
 package assert
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 // Equal calls t.Fatal if result != expected.
 func Equal[T comparable](t testing.TB, result, expected T) {
@@ -58,4 +61,11 @@ func NilError(t testing.TB, err error) {
 	}
 
 	t.Fatalf("error is not nil: %v", err)
+}
+
+// ErrorsIs calls t.Fatal if errors.Is(err, target) fails.
+func ErrorIs(t testing.TB, err, target error) {
+	if !errors.Is(err, target) {
+		t.Fatalf("error %v is not %v", err, target)
+	}
 }
