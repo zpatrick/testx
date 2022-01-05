@@ -9,7 +9,7 @@ func Equal[T comparable](t testing.TB, result, expected T) {
 	}
 }
 
-// A Comparable can be compared to other instances of the same type.
+// A Comparable can be compared to other instance of the same type.
 type Comparable[T any] interface {
 	// Equal should return true if t is equal to the receiver.
 	Equal(t T) bool
