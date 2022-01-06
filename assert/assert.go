@@ -12,7 +12,7 @@ func Equal[T comparable](t testing.TB, result, expected T) {
 	}
 }
 
-// A Comparable can be compared to other instance of the same type.
+// A Comparable can be compared to other instances of the same type.
 type Comparable[T any] interface {
 	// Equal should return true if t is equal to the receiver.
 	Equal(t T) bool
@@ -63,11 +63,9 @@ func Error(t testing.TB, err error) {
 
 // NilError calls t.Fatal if err is not nil.
 func NilError(t testing.TB, err error) {
-	if err == nil {
-		return
+	if err != nil {
+		t.Fatalf("error is not nil: %v", err)
 	}
-
-	t.Fatalf("error is not nil: %v", err)
 }
 
 // ErrorsIs calls t.Fatal if errors.Is(err, target) fails.
