@@ -7,6 +7,7 @@ import (
 
 // Equal calls t.Fatal if result != expected.
 func Equal[T comparable](t testing.TB, result, expected T) {
+	t.Helper()
 	if result != expected {
 		t.Fatalf("%v != %v", result, expected)
 	}
@@ -20,6 +21,7 @@ type Comparable[T any] interface {
 
 // EqualC calls t.Fatal if result != expected.
 func EqualC[T any](t testing.TB, result Comparable[T], expected T) {
+	t.Helper()
 	if !result.Equal(expected) {
 		t.Fatalf("%v != %v", result, expected)
 	}
@@ -27,6 +29,7 @@ func EqualC[T any](t testing.TB, result Comparable[T], expected T) {
 
 // Contains calls t.Fatal if elem is not present in s.
 func Contains[T comparable](t testing.TB, s []T, elem T) {
+	t.Helper()
 	for _, v := range s {
 		if v == elem {
 			return
@@ -38,6 +41,7 @@ func Contains[T comparable](t testing.TB, s []T, elem T) {
 
 // Equal calls t.Fatal if the specified key is not present in m.
 func ContainsKey[T comparable, A any](t testing.TB, m map[T]A, key T) {
+	t.Helper()
 	if _, ok := m[key]; !ok {
 		t.Fatalf("key %v not present in %v", key, m)
 	}
@@ -45,6 +49,7 @@ func ContainsKey[T comparable, A any](t testing.TB, m map[T]A, key T) {
 
 // Equal calls t.Fatal if the specified val is not present in m.
 func ContainsVal[A, T comparable](t testing.TB, m map[A]T, val T) {
+	t.Helper()
 	for _, v := range m {
 		if v == val {
 			return
@@ -56,6 +61,7 @@ func ContainsVal[A, T comparable](t testing.TB, m map[A]T, val T) {
 
 // Error calls t.Fatal if err is nil.
 func Error(t testing.TB, err error) {
+	t.Helper()
 	if err == nil {
 		t.Fatalf("error is nil")
 	}
@@ -63,6 +69,7 @@ func Error(t testing.TB, err error) {
 
 // NilError calls t.Fatal if err is not nil.
 func NilError(t testing.TB, err error) {
+	t.Helper()
 	if err != nil {
 		t.Fatalf("error is not nil: %v", err)
 	}
@@ -70,6 +77,7 @@ func NilError(t testing.TB, err error) {
 
 // ErrorsIs calls t.Fatal if errors.Is(err, target) fails.
 func ErrorIs(t testing.TB, err, target error) {
+	t.Helper()
 	if !errors.Is(err, target) {
 		t.Fatalf("error.Is check failed for %v (target: %v)", err, target)
 	}
@@ -77,6 +85,7 @@ func ErrorIs(t testing.TB, err, target error) {
 
 // ErrorsAs calls t.Fatal if errors.As(err, target) fails.
 func ErrorAs(t testing.TB, err error, target any) {
+	t.Helper()
 	if !errors.As(err, target) {
 		t.Fatalf("error.As check failed for %v (target: %v)", err, target)
 	}
