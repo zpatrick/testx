@@ -44,6 +44,61 @@ func TestEqualFail(t *testing.T) {
 	assert.Equal(r, 1, 2)
 }
 
+func TestEqualSlices(t *testing.T) {
+	assert.EqualSlices(t, []int{1, 2}, []int{1, 2})
+	assert.EqualSlices(t, []string{"a", "b"}, []string{"a", "b"})
+	assert.EqualSlices[int](t, nil, nil)
+}
+
+func TestEqualSlicesFail(t *testing.T) {
+	testCases := []struct {
+		Name string
+		A    []int
+		B    []int
+	}{
+		{"nil", []int{1, 2, 3}, nil},
+		{"missing element", []int{1, 2, 3}, []int{1, 2}},
+		{"extra element", []int{1, 2, 3}, []int{1, 2, 3, 4}},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.Name, func(t *testing.T) {
+			r := newRecorder(t)
+			defer r.AssertFatalCalled()
+
+			assert.EqualSlices(r, tc.A, tc.B)
+		})
+	}
+}
+
+func TestEqualMaps(t *testing.T) {
+	assert.EqualMaps(t, map[string]int{"a": 1, "b": 2}, map[string]int{"a": 1, "b": 2})
+	assert.EqualMaps[int, bool](t, nil, nil)
+}
+
+func TestEqualMapsFail(t *testing.T) {
+	testCases := []struct {
+		Name string
+		A    map[string]int
+		B    map[string]int
+	}{
+		{"nil", map[string]int{"a": 1, "b": 2}, nil},
+		{"missing element", map[string]int{"a": 1, "b": 2}, map[string]int{"a": 1}},
+		{"extra element", map[string]int{"a": 1, "b": 2}, map[string]int{"a": 1, "b": 2, "c": 3}},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.Name, func(t *testing.T) {
+			r := newRecorder(t)
+			defer r.AssertFatalCalled()
+
+			assert.EqualMaps(r, tc.A, tc.B)
+		})
+	}
+}
+
 type roundedFloat float64
 
 func (r roundedFloat) Equal(o roundedFloat) bool {
@@ -65,41 +120,91 @@ func TestContains(t *testing.T) {
 	assert.Contains(t, []int{1, 2, 3, 4, 5}, 1)
 	assert.Contains(t, []int{1, 2, 3, 4, 5}, 3)
 	assert.Contains(t, []int{1, 2, 3, 4, 5}, 5)
+	assert.Contains(t, []int{1, 2, 3, 4, 5}, 1, 2, 3)
+	assert.Contains(t, []int{1, 2, 3, 4, 5}, 2, 5)
 }
 
 func TestContainsFail(t *testing.T) {
-	r := newRecorder(t)
-	defer r.AssertFatalCalled()
+	testCases := []struct {
+		Name string
+		S    []int
+		V    []int
+	}{
+		{"below", []int{1, 2, 3}, []int{0}},
+		{"above", []int{1, 2, 3}, []int{4}},
+		{"all out", []int{1, 2, 3}, []int{5, 6}},
+		{"mixed", []int{1, 2, 3}, []int{3, 4}},
+	}
 
-	assert.Contains(r, []int{1, 2, 3, 4, 5}, 6)
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.Name, func(t *testing.T) {
+			r := newRecorder(t)
+			defer r.AssertFatalCalled()
+
+			assert.Contains(r, tc.S, tc.V...)
+		})
+	}
 }
 
-func TestContainsKey(t *testing.T) {
-	assert.ContainsKey(t, map[int]string{1: "", 2: ""}, 1)
-	assert.ContainsKey(t, map[int]string{1: "", 2: ""}, 2)
-	assert.ContainsKey(t, map[string]int{"a": 0, "b": 0}, "a")
-	assert.ContainsKey(t, map[string]int{"a": 0, "b": 0}, "b")
+func TestContainsKeys(t *testing.T) {
+	assert.ContainsKeys(t, map[int]string{1: "", 2: ""}, 1)
+	assert.ContainsKeys(t, map[int]string{1: "", 2: ""}, 2)
+	assert.ContainsKeys(t, map[int]string{1: "", 2: ""}, 1, 2)
+	assert.ContainsKeys(t, map[string]int{"a": 0, "b": 0}, "a")
+	assert.ContainsKeys(t, map[string]int{"a": 0, "b": 0}, "b")
+	assert.ContainsKeys(t, map[string]int{"a": 0, "b": 0}, "a", "b")
 }
 
-func TestContainsKeyFail(t *testing.T) {
-	r := newRecorder(t)
-	defer r.AssertFatalCalled()
+func TestContainsKeysFail(t *testing.T) {
+	testCases := []struct {
+		Name string
+		M    map[string]int
+		Keys []string
+	}{
+		{"out", map[string]int{"a": 1, "b": 2}, []string{"c"}},
+		{"mixed", map[string]int{"a": 1, "b": 2}, []string{"b", "c"}},
+	}
 
-	assert.ContainsKey(r, map[int]string{1: "", 2: ""}, 3)
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.Name, func(t *testing.T) {
+			r := newRecorder(t)
+			defer r.AssertFatalCalled()
+
+			assert.ContainsKeys(r, tc.M, tc.Keys...)
+		})
+	}
 }
 
-func TestContainsVal(t *testing.T) {
-	assert.ContainsVal(t, map[int]string{0: "a", 1: "b"}, "a")
-	assert.ContainsVal(t, map[int]string{0: "a", 1: "b"}, "b")
-	assert.ContainsVal(t, map[string]int{"a": 1, "b": 2}, 1)
-	assert.ContainsVal(t, map[string]int{"a": 1, "b": 2}, 2)
+func TestContainsVals(t *testing.T) {
+	assert.ContainsVals(t, map[int]string{0: "a", 1: "b"}, "a")
+	assert.ContainsVals(t, map[int]string{0: "a", 1: "b"}, "b")
+	assert.ContainsVals(t, map[int]string{0: "a", 1: "b"}, "a", "b")
+	assert.ContainsVals(t, map[string]int{"a": 1, "b": 2}, 1)
+	assert.ContainsVals(t, map[string]int{"a": 1, "b": 2}, 2)
+	assert.ContainsVals(t, map[string]int{"a": 1, "b": 2}, 1, 2)
 }
 
-func TestContainsValFail(t *testing.T) {
-	r := newRecorder(t)
-	defer r.AssertFatalCalled()
+func TestContainsValsFail(t *testing.T) {
+	testCases := []struct {
+		Name string
+		M    map[string]int
+		Vals []int
+	}{
+		{"out", map[string]int{"a": 1, "b": 2}, []int{3}},
+		{"mixed", map[string]int{"a": 1, "b": 2}, []int{2, 3}},
+	}
 
-	assert.ContainsVal(r, map[int]string{0: "a", 1: "b"}, "c")
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.Name, func(t *testing.T) {
+			r := newRecorder(t)
+			defer r.AssertFatalCalled()
+
+			assert.ContainsVals(r, tc.M, tc.Vals...)
+		})
+	}
 }
 
 func TestError(t *testing.T) {
