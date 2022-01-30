@@ -93,7 +93,8 @@ func (l *logger) Fatalf(format string, args ...any) {
 
 type PrefixLoggingOptions struct {
 	DisableMethods LoggingMethodSwitch
-	Prefix         func() string
+	Prefix         string
+	PrefixFunc     func() string
 }
 
 func WithPrefixLogging(opts PrefixLoggingOptions) Wrapper {
@@ -104,7 +105,7 @@ func WithPrefixLogging(opts PrefixLoggingOptions) Wrapper {
 
 func Prefix(tb testing.TB, prefix string) testing.TB {
 	return newPrefixLogger(tb, PrefixLoggingOptions{
-		Prefix: func() string { return prefix },
+		Prefix: prefix,
 	})
 }
 
@@ -113,14 +114,26 @@ func Prefixf(tb testing.TB, format string, args ...any) testing.TB {
 }
 
 func newPrefixLogger(tb testing.TB, opts PrefixLoggingOptions) *logger {
+	var prefixFunc func() string
+	switch {
+	case opts.Prefix == "" && opts.PrefixFunc == nil:
+		tb.Fatal("must specify either Prefix or PrefixFunc")
+	case opts.Prefix != "" && opts.PrefixFunc == nil:
+		prefixFunc = func() string { return opts.Prefix }
+	case opts.Prefix == "" && opts.PrefixFunc != nil:
+		prefixFunc = opts.PrefixFunc
+	default:
+		tb.Fatal("cannot specify both Prefix and PrefixFunc")
+	}
+
 	return &logger{
 		TB:   tb,
 		opts: LoggingOptions{DisableMethods: opts.DisableMethods},
 		format: func(method func(...any), args ...any) {
-			method(append([]any{opts.Prefix()}, args...)...)
+			method(append([]any{prefixFunc()}, args...)...)
 		},
 		formatf: func(method func(string, ...any), format string, args ...any) {
-			method(opts.Prefix() + " " + fmt.Sprintf(format, args...))
+			method(prefixFunc() + " " + fmt.Sprintf(format, args...))
 		},
 	}
 }

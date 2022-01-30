@@ -22,7 +22,7 @@ var (
 		},
 	}
 	prefixLoggingOpts = testx.PrefixLoggingOptions{
-		Prefix: func() string {
+		PrefixFunc: func() string {
 			return fmt.Sprintf("(%s)", time.Now().Format("15:04:05.9999"))
 		},
 	}
