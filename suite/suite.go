@@ -15,7 +15,7 @@ import (
 // The state should be instantiated during the Setup method
 // and (if neccessary) cleaned up during the Teardown method.
 type Suite interface {
-	Setup() error
+	Setup(t testing.TB) error
 	Teardown() error
 }
 
@@ -24,7 +24,7 @@ type Suite interface {
 type Base struct{}
 
 // Setup is a no-op.
-func (Base) Setup() error { return nil }
+func (Base) Setup(tb testing.TB) error { return nil }
 
 // Teardown is a no-op.
 func (Base) Teardown() error { return nil }
@@ -34,27 +34,24 @@ func (Base) Teardown() error { return nil }
 // using the same type will cause a panic.
 func Register(s Suite) {
 	m := newSuiteManager(s)
-	key := m.Type()
 
-	if _, ok := registry[key]; ok {
-		panic(fmt.Sprintf("suite of type %v has already been registered", key))
+	if err := defaultRegistry.Insert(m.Type(), m); err != nil {
+		panic(err)
 	}
-
-	registry[key] = m
 }
 
 // Get returns the instance of S which must have been previously registered using Register.
 // If this is the first time Get is called for type S, the suite's Setup method will be ran.
 // If the suite's Setup method failed, t.Fatal will be called.
-func Get[S Suite](t testing.TB) (s S) {
+func Get[S Suite](tb testing.TB) (s S) {
 	sType := newSuiteManager(s).Type()
-	m, ok := registry[sType]
+	m, ok := defaultRegistry.Get(sType)
 	if !ok {
-		t.Fatalf("suite of type %v has not been registered", sType)
+		tb.Fatalf("suite of type %v has not been registered", sType)
 	}
 
-	if err := m.Setup(); err != nil {
-		t.Fatalf("setup failed for suite %v: %s", sType, err.Error())
+	if err := m.Setup(tb); err != nil {
+		tb.Fatalf("setup failed for suite %v: %s", sType, err.Error())
 	}
 
 	return m.suite.(S)
@@ -65,7 +62,13 @@ func Get[S Suite](t testing.TB) (s S) {
 // teardown method will not be run.
 func Teardown() error {
 	var errs []error
-	for _, m := range registry {
+	for _, key := range defaultRegistry.teardownOrder {
+		m, ok := defaultRegistry.Get(key)
+		if !ok {
+			// This should never happen in theory - just making life easier in case is a bug is introduced.
+			return fmt.Errorf("suite %s specified by teardownOrder missing from defaultRegistry", key)
+		}
+
 		if err := m.Teardown(); err != nil {
 			errs = append(errs, errors.Wrapf(err, "--- ERROR: Teardown failed for suite %v", m.Type()))
 		}
@@ -105,13 +108,13 @@ func (s *suiteManager) Type() string {
 	return reflect.TypeOf(s.suite).String()
 }
 
-func (s *suiteManager) Setup() error {
+func (s *suiteManager) Setup(tb testing.TB) error {
 	if s.setupErr != nil {
 		return s.setupErr
 	}
 
 	s.once.Do(func() {
-		s.setupErr = s.suite.Setup()
+		s.setupErr = s.suite.Setup(tb)
 		s.setupRan = true
 	})
 
@@ -126,4 +129,29 @@ func (s *suiteManager) Teardown() error {
 	return s.suite.Teardown()
 }
 
-var registry map[string]*suiteManager = map[string]*suiteManager{}
+var defaultRegistry = &registry{
+	suites:        map[string]*suiteManager{},
+	teardownOrder: []string{},
+}
+
+type registry struct {
+	suites        map[string]*suiteManager
+	teardownOrder []string
+}
+
+func (r *registry) Insert(key string, s *suiteManager) error {
+	if _, ok := r.suites[key]; ok {
+		return fmt.Errorf("suite %s has already been registered", key)
+	}
+
+	r.suites[key] = s
+
+	// Order happens in reverse order of registration
+	r.teardownOrder = append([]string{key}, r.teardownOrder...)
+	return nil
+}
+
+func (r *registry) Get(key string) (*suiteManager, bool) {
+	s, ok := r.suites[key]
+	return s, ok
+}
