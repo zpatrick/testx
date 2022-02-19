@@ -1,7 +1,6 @@
 package suite_test
 
 import (
-	"database/sql"
 	"log"
 	"os"
 	"testing"
@@ -10,12 +9,10 @@ import (
 )
 
 type DBSuite struct {
-	db *sql.DB
 }
 
 func (d *DBSuite) Setup(tb testing.TB) error {
 	log.Println("[DBSuite] running setup")
-	d.db = &sql.DB{}
 	return nil
 }
 
@@ -26,7 +23,6 @@ func (d *DBSuite) Exec(query string, args ...any) error {
 
 func (d *DBSuite) Teardown() error {
 	log.Println("[DBSuite] running teardown")
-
 	return nil
 }
 
@@ -65,7 +61,7 @@ func (p *ProductSuite) Setup(tb testing.TB) error {
 	log.Println("[ProductSuite] running setup")
 
 	p.dbSuite = suite.Get[*DBSuite](tb)
-	if err := p.dbSuite.Exec("INSERT INTO products ..."); err != nil {
+	if err := p.dbSuite.Exec("INSERT INTO products ...", p.ProductName); err != nil {
 		return err
 	}
 
@@ -110,7 +106,7 @@ func TestUserSuite_charlie(t *testing.T) {
 	t.Log("user id:", u.UserID)
 }
 
-func TestOtherSuite_alpha(t *testing.T) {
+func TestProductSuite_alpha(t *testing.T) {
 	t.Parallel()
 
 	p := suite.Get[*ProductSuite](t)

@@ -11,16 +11,23 @@ import (
 	"go.uber.org/multierr"
 )
 
-// A Suite holds some shared state for multiple tests.
-// The state should be instantiated during the Setup method
-// and (if neccessary) cleaned up during the Teardown method.
+// A Suite holds shared dependencies for multiple tests.
 type Suite interface {
-	Setup(t testing.TB) error
+	// Setup should create any dependencies required for the suite to run.
+	// The tb parameter is passed only as a means to setup dependent suites; it
+	// should not be used as a control-flow mechanism (e.g. by calling tb.Fatal).
+	// Any error(s) encountered during this method should be returned.
+	Setup(tb testing.TB) error
+
+	// Teardown should cleanup any resources created by Setup.
+	// If Setup returns an error, this method will still be executed in order
+	// to cleanup partially-created dependencies. This requires that Teardown
+	// methods be idempotent.
 	Teardown() error
 }
 
-// Base is a placeholder type which can be embedded into other suites
-// if they don't need to implement setup or teardown methods.
+// Base is a placeholder type which can be embedded into types
+// which don't need to implement the Setup or Teardown methods.
 type Base struct{}
 
 // Setup is a no-op.
@@ -29,9 +36,10 @@ func (Base) Setup(tb testing.TB) error { return nil }
 // Teardown is a no-op.
 func (Base) Teardown() error { return nil }
 
-// Register allows a suite of type s to be later retrieved using Get.
-// Only one instance of type s should be registered - multiple calls to Register
-// using the same type will cause a panic.
+// Register allows a suite of s's concrete type to be later retrieved using Get.
+// Only one instance of type s's concrete type should be registered.
+// The order in which suites are registered determines the order teardown methods are called:
+// Teardowns happen on a FILO (first in, last out) basis.
 func Register(s Suite) {
 	m := newSuiteManager(s)
 
@@ -42,7 +50,7 @@ func Register(s Suite) {
 
 // Get returns the instance of S which must have been previously registered using Register.
 // If this is the first time Get is called for type S, the suite's Setup method will be ran.
-// If the suite's Setup method failed, t.Fatal will be called.
+// If the suite's Setup method fails, tb.Fatal will be called.
 func Get[S Suite](tb testing.TB) (s S) {
 	sType := newSuiteManager(s).Type()
 	m, ok := defaultRegistry.Get(sType)
@@ -58,7 +66,7 @@ func Get[S Suite](tb testing.TB) (s S) {
 }
 
 // Teardown runs the Teardown method on registered suites who ran their Setup methods.
-// If a suite was registered but never retrieved (by using the Get function), it's
+// If a suite was registered but never retrieved (by using the Get function), its
 // teardown method will not be run.
 func Teardown() error {
 	var errs []error
@@ -78,7 +86,7 @@ func Teardown() error {
 }
 
 // Run is a helper method which calls m.Run and the Teardown function,
-// returning the exit code from m.Run, or 1 if an error occured during Teardown.
+// returning the exit code from m.Run or 1 if an error occured during Teardown.
 func Run(m *testing.M) int {
 	code := m.Run()
 	if err := Teardown(); err != nil {
@@ -95,6 +103,7 @@ func Run(m *testing.M) int {
 type suiteManager struct {
 	suite Suite
 
+	mux      sync.Mutex
 	once     sync.Once
 	setupRan bool
 	setupErr error
@@ -109,6 +118,9 @@ func (s *suiteManager) Type() string {
 }
 
 func (s *suiteManager) Setup(tb testing.TB) error {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+
 	if s.setupErr != nil {
 		return s.setupErr
 	}
@@ -145,8 +157,7 @@ func (r *registry) Insert(key string, s *suiteManager) error {
 	}
 
 	r.suites[key] = s
-
-	// Order happens in reverse order of registration
+	// Execute teardowns on a FILO basis.
 	r.teardownOrder = append([]string{key}, r.teardownOrder...)
 	return nil
 }
