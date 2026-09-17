@@ -14,6 +14,15 @@ func Equal[T comparable](t testing.TB, result, expected T) {
 	}
 }
 
+// NotEqual calls t.Fatalf if result == expected.
+func NotEqual[T comparable](t testing.TB, result, expected T) {
+	t.Helper()
+
+	if result == expected {
+		t.Fatalf("%v == %v", result, expected)
+	}
+}
+
 // EqualSlices calls t.Fatalf if result expected do not contain the same elements in the same order.
 func EqualSlices[T comparable, TS ~[]T](t testing.TB, result, expected TS) {
 	t.Helper()

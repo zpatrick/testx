@@ -44,10 +44,22 @@ func TestEqualFail(t *testing.T) {
 	assert.Equal(r, 1, 2)
 }
 
+func TestNotEqual(t *testing.T) {
+	assert.NotEqual(t, 1, 2)
+	assert.NotEqual(t, "a", "b")
+}
+
+func TestNotEqualFail(t *testing.T) {
+	r := newRecorder(t)
+	defer r.AssertFatalCalled()
+
+	assert.NotEqual(r, 1, 1)
+}
+
 func TestEqualSlices(t *testing.T) {
 	assert.EqualSlices(t, []int{1, 2}, []int{1, 2})
 	assert.EqualSlices(t, []string{"a", "b"}, []string{"a", "b"})
-	assert.EqualSlices[int](t, nil, nil)
+	assert.EqualSlices[int, []int](t, nil, nil)
 }
 
 func TestEqualSlicesFail(t *testing.T) {
